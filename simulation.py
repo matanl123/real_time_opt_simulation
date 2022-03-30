@@ -2,17 +2,17 @@ import numpy as np
 import heapq
 import datetime
 from random import randrange
+from scipy.spatial import distance
 
 np.random.seed(0)
 
 PARCEL_ARRIVAL_EVENT = 0
 VEHICLE_DEPARTURE_EVENT = 1
 
-
+## class Node defines the geographic representaion of point on the grid
 class Node:
     def __init__(self, x=0, y=0):
-        self.x = x,
-        self.y = y
+        self.xy = (x, y)
 
 
 class Vehicle:
@@ -59,23 +59,24 @@ class Stop:
 
 def dist(node1, node2, dist_type):
     if dist_type == 'euclidian':
-        distance = np.linalg.norm(node1 - node2)
+        dist = np.sqrt(np.sum(np.square(np.array(node1.xy)-np.array(node2.xy))))
     elif dist_type == 'manhattan':
-        distance = sum(abs(val1 - val2) for val1, val2 in zip(node1, node2))
-    return distance
+        dist = sum(abs(val1 - val2) for val1, val2 in zip(node1, node2))
+    return dist
 
 
 class Simulation:
-    def __init__(self, fleet_size, simulation_run_time, lamb=1):
+    def __init__(self, fleet_size, simulation_run_time, lamb=1, velocity):
         self.fleet_size = fleet_size
         self.simulation_run_time = simulation_run_time
         self.vehicles_fleet = self._init_vehicles_fleet()
         self.start_time = datetime.datetime.now()
         self.current_time = datetime.datetime.now()
+        self.lamb = lamb
+        self.velocity = velocity
         time_delta = datetime.timedelta(seconds=simulation_run_time)
         self.end_time = self.start_time + time_delta
         self.events = self._init_events_heap()
-        self.lamb = lamb
         self.requests_count = 0
         self.requests = {}
 
@@ -87,7 +88,7 @@ class Simulation:
         return vehicle_array
 
     def _next_event_interval(self):
-        return np.random.exponential(100)
+        return np.random.exponential(5)
 
     def _init_events_heap(self):
         events_list = []
@@ -97,10 +98,13 @@ class Simulation:
         return events_list
 
     def _insert_new_request(self, request_id):
+        best_option = {}
         for vehicle in self.vehicles_fleet:
             if vehicle.idle:
-                stop = Stop('pickup', request_id, None)
-                vehicle.add_new_stop(stop)
+                stop_pickup = Stop('pickup', request_id, None)
+                stop_delivery = Stop('delivery', request_id, None)
+                vehicle.add_new_stop(stop_pickup)
+                vehicle.add_new_stop(stop_delivery)
                 vehicle.idle = False
                 print(f'Request {request_id} was paired to {vehicle.id}')
                 break
@@ -108,11 +112,12 @@ class Simulation:
     def _generate_nodes(self) -> Node:
         return Node(randrange(10), randrange(10))
 
+
     def run(self):
         event_count = 1
         requests_count = 0
+        curr_event = heapq.heappop(self.events)
         while datetime.datetime.now() < self.end_time:
-            curr_event = heapq.heappop(self.events)
             if datetime.datetime.now() >= curr_event.time[0]:
                 if curr_event.event_type == 'parcel_arrival_event':
                     self.current_time = curr_event.time[0]
@@ -126,9 +131,13 @@ class Simulation:
                     self._insert_new_request(requests_count)
                     requests_count += 1
                     event_count += 1
+                if curr_event.event_type == 'vehicle_departure':
+                    print("vehicle_departure")
+
+                curr_event = heapq.heappop(self.events)
 
 def main():
-    simulation = Simulation(3, 1000, 100)
+    simulation = Simulation(3, 1000, 1, 5)
     simulation.run()
 
 
