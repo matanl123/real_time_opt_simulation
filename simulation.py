@@ -1,34 +1,37 @@
 import numpy as np
 import heapq
+import datetime
+from random import randrange
 
 np.random.seed(0)
-## next node of vehicle - (id, next_node, time_at_next_node)
-## k = len(vehicle) מימד המערך
 
-## next_node - x ,y
+PARCEL_ARRIVAL_EVENT = 0
+VEHICLE_DEPARTURE_EVENT = 1
 
-## clock
 
-## default insertion - vehicle with munimum time to arrive to the new request
-##
-class node():
-    x,
-    y
+class Node:
+    def __init__(self, x=0, y=0):
+        self.x = x,
+        self.y = y
 
-class vehicle():
-    __init__(self, id, idle = True, idle_node  = node(0,0)):
-        id,
-        list_of_next_stops = []
-        idle
-        idle_node
 
-class event:
-    time,
-    event_type (request_arrival, vehicle_departure(update pickup_time/delivery_time)/ delete first elemnt from list_of_next_stops) ## each time requst arrival
-    vehicle_id
+class Vehicle:
+    def __init__(self, id, list_of_next_stops=[], idle=True, idle_node=Node(0, 0)):
+        self.id = id,
+        self.list_of_next_stops = list_of_next_stops
+        self.idle = idle
+        self.idle_node = idle_node
 
-def __init__(time, event_type,vehicle_id=-1):
+    def add_new_stop(self, stop):
+        self.list_of_next_stops.append(stop)
 
+
+class Event:
+    def __init__(self, id=None, time=None, event_type=None, vehicle_id=None):
+        self.id = id
+        self.time = time,
+        self.event_type = event_type ##(request_arrival, vehicle_departure(update pickup_time/delivery_time)/ delete first elemnt from list_of_next_stops) ## each time requst arrival
+        self.vehicle_id = vehicle_id
 
     def __lt__(self, other):
         return self.time < other.time
@@ -37,61 +40,98 @@ def __init__(time, event_type,vehicle_id=-1):
         return self.time <= other.time
 
 
-class request():
-    id,
-    node_pickup node,
-    node_delivery node,
-    request_time,
-    pickup_time,
-    delivery_time
-
-class stop():
-    stop_type ##pickup/delivery
-    request_id,
-    departure_time,
-
-parcel_arrival_event  = 0
-vehicle_departure_event = 1
-
-t = 0
-T = 10
-lamb = 1
-events = []
-requests = {}
-vehicles = {}
-requests_count = 0
-heapq.heappush(events, (event(np.random.exponential(lamb), parcel_arrival_event)))
-
-def insert_new_request(request_id):
-    ## update requests_count with new request
-    #  insert first event if the vehicle was idle
+class Request:
+    def __init__(self, id, node_pickup, node_delivery, request_time, pickup_time, delivery_time):
+        self.id = id,
+        self.node_pickup = node_pickup,
+        self.node_delivery = node_delivery,
+        self.request_time = request_time,
+        self.pickup_time = pickup_time,
+        self.delivery_time = delivery_time
 
 
-
-def generate_nodes():
-    return node(np.random.rand(0,10), np.random.rand(0,10))
-
-def dist(node1, node2):
-    # distance between two nodes
-
-while t < T:
-
-    curr_event = heapq.heappop(events)
-    t = curr_event.time
-    if curr_event.event_type == parcel_arrival_event:
-        heapq.heappush(events, (t + event(np.random.exponential(lamb), parcel_arrival_event)))
-        node_pickup  = genrate_nodes()
-        node_delivery = genrate_nodes()
-        requests[requests_count] = request(requests_count, node_pickup, node_delivery, t, None, None)
-        insert_new_request(requests_count)
-        requests_count +=1
-    elif curr_event.event_type == vehicle_departure_event:
-        # delete first request from vehicle
-        # insert new vehicle departure event unless the list is empty
+class Stop:
+    def __init__(self, stop_type, request_id, departure_time):
+        self.stop_type = stop_type  ##pickup/delivery
+        self.request_id = request_id,
+        self.departure_time = departure_time
 
 
+def dist(node1, node2, dist_type):
+    if dist_type == 'euclidian':
+        distance = np.linalg.norm(node1 - node2)
+    elif dist_type == 'manhattan':
+        distance = sum(abs(val1 - val2) for val1, val2 in zip(node1, node2))
+    return distance
 
 
+class Simulation:
+    def __init__(self, fleet_size, simulation_run_time, lamb=1):
+        self.fleet_size = fleet_size
+        self.simulation_run_time = simulation_run_time
+        self.vehicles_fleet = self._init_vehicles_fleet()
+        self.start_time = datetime.datetime.now()
+        self.current_time = datetime.datetime.now()
+        time_delta = datetime.timedelta(seconds=simulation_run_time)
+        self.end_time = self.start_time + time_delta
+        self.events = self._init_events_heap()
+        self.lamb = lamb
+        self.requests_count = 0
+        self.requests = {}
+
+    def _init_vehicles_fleet(self):
+        vehicle_array = []
+        for i in range(0, self.fleet_size):
+            vehicle = Vehicle(i)
+            vehicle_array.append(vehicle)
+        return vehicle_array
+
+    def _next_event_interval(self):
+        return np.random.exponential(100)
+
+    def _init_events_heap(self):
+        events_list = []
+        first_event_time = self.start_time + datetime.timedelta(seconds=self._next_event_interval())
+        init_events_list = Event(0, first_event_time, 'parcel_arrival_event')
+        heapq.heappush(events_list, init_events_list)
+        return events_list
+
+    def _insert_new_request(self, request_id):
+        for vehicle in self.vehicles_fleet:
+            if vehicle.idle:
+                stop = Stop('pickup', request_id, None)
+                vehicle.add_new_stop(stop)
+                vehicle.idle = False
+                print(f'Request {request_id} was paired to {vehicle.id}')
+                break
+
+    def _generate_nodes(self) -> Node:
+        return Node(randrange(10), randrange(10))
+
+    def run(self):
+        event_count = 1
+        requests_count = 0
+        while datetime.datetime.now() < self.end_time:
+            curr_event = heapq.heappop(self.events)
+            if datetime.datetime.now() >= curr_event.time[0]:
+                if curr_event.event_type == 'parcel_arrival_event':
+                    self.current_time = curr_event.time[0]
+                    next_event_time = self.current_time + datetime.timedelta(seconds=self._next_event_interval())
+                    event = Event(event_count, next_event_time, 'parcel_arrival_event')
+                    print(f'New event of type parcel_arrival_event was generated at time {str(next_event_time)}')
+                    heapq.heappush(self.events, event)
+                    node_pickup = self._generate_nodes()
+                    node_delivery = self._generate_nodes()
+                    self.requests[self.requests_count] = Request(requests_count, node_pickup, node_delivery, self.current_time, None, None)
+                    self._insert_new_request(requests_count)
+                    requests_count += 1
+                    event_count += 1
+
+def main():
+    simulation = Simulation(3, 1000, 100)
+    simulation.run()
 
 
+if __name__ == "__main__":
+    main()
 
