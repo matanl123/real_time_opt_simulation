@@ -16,9 +16,9 @@ class Node:
 
 
 class Vehicle:
-    def __init__(self, id, list_of_next_stops=[], idle=True, idle_node=Node(0, 0)):
+    def __init__(self, id, idle=True, idle_node=Node(0, 0)):
         self.id = id,
-        self.list_of_next_stops = list_of_next_stops
+        self.list_of_next_stops = []
         self.idle = idle
         self.idle_node = idle_node
 
@@ -97,23 +97,28 @@ class Simulation:
         return events_list
 
     def _insert_new_request(self, request_id):
+        ## Dictionary for adding the the deliver time for each vehicle
         best_option = {}
+        ## Initial 2 Stop objects for each request
         stop_pickup = Stop('pickup', request_id, None)
         stop_delivery = Stop('delivery', request_id, None)
+        ## Iterate each vehicle in fleet. If it's on Idle mode then Insert to vehicle stop array, else check the min deliver time for vehicles
         for vehicle in self.vehicles_fleet:
             if vehicle.idle:
                 vehicle.add_new_stop(stop_pickup)
                 vehicle.add_new_stop(stop_delivery)
                 vehicle.idle = False
-                print(f'Request {request_id} was paired to {vehicle.id}')
+                print(f'Request {request_id} was paired to vehicle {vehicle.id[0]}')
                 return
             else:
+                ## Calculate the time each vehicle can handle request
                 last_stop = vehicle.list_of_next_stops[-1]
                 distance_from_last_stop = dist(self.requests[last_stop.request_id[0]].node_delivery[0], self.requests[request_id].node_delivery[0], 'euclidian')
                 time_to_handle = vehicle.list_of_next_stops[-1].departure_time + datetime.timedelta(seconds=(float(distance_from_last_stop)/float(self.velocity)))
                 best_option[vehicle.id[0]] = time_to_handle
+        ## Take the vehicle with the minimum deliver time
         vehicle_min_time = min(best_option, key=best_option.get)
-        print(f'Request {request_id} was paired to {vehicle_min_time}')
+        print(f'Request {request_id} was paired to vehicle {vehicle_min_time}')
         self.vehicles_fleet[vehicle_min_time].list_of_next_stops.append(stop_pickup)
         self.vehicles_fleet[vehicle_min_time].list_of_next_stops.append(stop_delivery)
         return
@@ -126,7 +131,9 @@ class Simulation:
         event_count = 1
         requests_count = 0
         curr_event = heapq.heappop(self.events)
+        ## Run Simulation Until the the and time pass
         while datetime.datetime.now() < self.end_time:
+            ## check if the next event time passed
             if datetime.datetime.now() >= curr_event.time[0]:
                 if curr_event.event_type == 'parcel_arrival_event':
                     self.current_time = curr_event.time[0]
@@ -146,7 +153,7 @@ class Simulation:
                 curr_event = heapq.heappop(self.events)
 
 def main():
-    simulation = Simulation(3, 1000, 1, 1)
+    simulation = Simulation(3, 1000, 1, 3)
     simulation.run()
 
 
