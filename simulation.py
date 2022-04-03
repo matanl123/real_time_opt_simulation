@@ -153,7 +153,7 @@ class Simulation:
                 curr_event = heapq.heappop(self.events)
 
 def main():
-    simulation = Simulation(3, 1000, 1, 3)
+    simulation = Simulation(3, 10, 1, 2)
     simulation.run()
 
 
