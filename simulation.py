@@ -9,6 +9,13 @@ np.random.seed(0)
 PARCEL_ARRIVAL_EVENT = 0
 VEHICLE_DEPARTURE_EVENT = 1
 
+def dist(node1, node2, dist_type):
+    if dist_type == 'euclidian':
+        dist = np.sqrt(np.sum(np.square(np.array(node1.xy)-np.array(node2.xy))))
+    elif dist_type == 'manhattan':
+        dist = sum(abs(val1 - val2) for val1, val2 in zip(node1, node2))
+    return dist
+
 ## class Node defines the geographic representaion of point on the grid
 class Node:
     def __init__(self, x=0, y=0):
@@ -51,18 +58,13 @@ class Request:
 
 
 class Stop:
-    def __init__(self, stop_type, request_id, departure_time):
+    def __init__(self, stop_type, request_id, departure_time=None):
         self.stop_type = stop_type  ##pickup/delivery
         self.request_id = request_id,
-        self.departure_time = datetime.datetime.now()
-
-
-def dist(node1, node2, dist_type):
-    if dist_type == 'euclidian':
-        dist = np.sqrt(np.sum(np.square(np.array(node1.xy)-np.array(node2.xy))))
-    elif dist_type == 'manhattan':
-        dist = sum(abs(val1 - val2) for val1, val2 in zip(node1, node2))
-    return dist
+        if departure_time is None:
+            self.departure_time = datetime.datetime.now()
+        else:
+            self.departure_time = departure_time
 
 
 class Simulation:
@@ -95,6 +97,12 @@ class Simulation:
         init_events_list = Event(0, first_event_time, 'parcel_arrival_event')
         heapq.heappush(events_list, init_events_list)
         return events_list
+
+    def _insert_vehicle_departure_event(self, request_id, vehicle_id):
+        last_stop_time = self.vehicles_fleet[vehicle_id].list_of_next_stops[-1].departure_time
+        last_request = self.vehicles_fleet[vehicle_id].list_of_next_stops[-1].request_id
+
+        self.requests[request_id]
 
     def _insert_new_request(self, request_id):
         ## Dictionary for adding the the deliver time for each vehicle
