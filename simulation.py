@@ -2,7 +2,6 @@ import numpy as np
 import heapq
 import datetime
 from random import randrange
-from scipy.spatial import distance
 
 np.random.seed(0)
 
@@ -199,7 +198,7 @@ class Simulation:
 
 
 def main():
-    simulation = Simulation(3, 10, 1, 2)
+    simulation = Simulation(3, 100, 1, 2)
     simulation.run()
 
 
