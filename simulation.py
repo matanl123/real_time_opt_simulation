@@ -59,7 +59,7 @@ class Request:
 
 class Stop:
     def __init__(self, stop_type, request_id, departure_time=None):
-        self.stop_type = stop_type  ##pickup/delivery
+        self.stop_type = stop_type
         self.request_id = request_id
         if departure_time is None:
             self.departure_time = time.time()
@@ -197,7 +197,7 @@ class Simulation:
 
 
 def main():
-    simulation = Simulation(3, 100, 1, 0.5)
+    simulation = Simulation(3, 50, 1, 0.5)
     simulation.run()
 
 
