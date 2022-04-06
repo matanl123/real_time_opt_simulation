@@ -150,7 +150,7 @@ class Simulation:
             if self.current_time >= self.events[0].time:
                 curr_event = heapq.heappop(self.events)
                 if curr_event.event_type == "parcel_arrival_event":
-                    heapq.heappush(self.events, Event( self.current_time + self._next_parcel_arrival_interval(), "parcel_arrival_event" ))
+                    heapq.heappush(self.events, Event(self.current_time + self._next_parcel_arrival_interval(), "parcel_arrival_event" ))
                     node_pickup = self._generate_nodes()
                     node_delivery = self._generate_nodes()
                     self.requests[requests_count] = Request(
@@ -168,6 +168,7 @@ class Simulation:
 
                     requests_count += 1
                 if curr_event.event_type == "vehicle_departure":
+                    self.vehicles_fleet[curr_event.vehicle_id].list_of_next_stops.pop(0)
                     print(
                         f"Time {self.current_time:.3f}: vehicle {curr_event.vehicle_id} departure"
                     )
