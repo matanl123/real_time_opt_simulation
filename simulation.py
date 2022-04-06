@@ -1,6 +1,7 @@
 import numpy as np
 import heapq
-#import datetime
+
+# import datetime
 import time
 from random import randrange
 
@@ -34,6 +35,7 @@ class Vehicle:
         self.list_of_next_stops.append(stop)
         self.idle = False
         return
+
 
 class Event:
     def __init__(self, time=None, event_type=None, vehicle_id=None):
@@ -80,7 +82,9 @@ class Simulation:
         self.velocity = velocity
         self.lamb = lamb
 
-        self.events = [Event(self._next_parcel_arrival_interval(), "parcel_arrival_event")]
+        self.events = [
+            Event(self._next_parcel_arrival_interval(), "parcel_arrival_event")
+        ]
         self.requests = {}
         self.start_time = time.time()
         self.end_time = self.start_time + self.simulation_run_time
@@ -93,8 +97,7 @@ class Simulation:
         return vehicle_array
 
     def _next_parcel_arrival_interval(self):
-        return np.random.exponential(1/self.lamb)
-
+        return np.random.exponential(1 / self.lamb)
 
     def _insert_new_request(self, request_id):
         best_option = {}
@@ -103,19 +106,36 @@ class Simulation:
                 last_stop = vehicle.idle_node
                 departure_time = self.current_time
             else:
-                last_stop = self.requests[vehicle.list_of_next_stops[-1].request_id].node_delivery
+                last_stop = self.requests[
+                    vehicle.list_of_next_stops[-1].request_id
+                ].node_delivery
                 departure_time = vehicle.list_of_next_stops[-1].departure_time
-            distance_from_last_stop = dist(last_stop, self.requests[request_id].node_delivery, "euclidian")
+            distance_from_last_stop = dist(
+                last_stop, self.requests[request_id].node_delivery, "euclidian"
+            )
             best_option[vehicle.id] = departure_time + float(distance_from_last_stop)
 
         vehicle_min_time = min(best_option, key=best_option.get)
         stop_pickup = Stop("pickup", request_id, best_option[vehicle_min_time])
-        stop_delivery = Stop("delivery", request_id, best_option[vehicle_min_time] + dist(self.requests[request_id].node_delivery, self.requests[request_id].node_pickup, "euclidian",))
+        stop_delivery = Stop(
+            "delivery",
+            request_id,
+            best_option[vehicle_min_time]
+            + dist(
+                self.requests[request_id].node_delivery,
+                self.requests[request_id].node_pickup,
+                "euclidian",
+            ),
+        )
         print(f"Request {request_id} was paired to vehicle {vehicle_min_time}")
         self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_pickup)
         self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_delivery)
-        self.events.append(Event(stop_pickup.departure_time, "vehicle_departure", vehicle_min_time))
-        self.events.append(Event(stop_delivery.departure_time, "vehicle_departure", vehicle_min_time))
+        self.events.append(
+            Event(stop_pickup.departure_time, "vehicle_departure", vehicle_min_time)
+        )
+        self.events.append(
+            Event(stop_delivery.departure_time, "vehicle_departure", vehicle_min_time)
+        )
         return
 
     def _generate_nodes(self) -> Node:
@@ -125,11 +145,17 @@ class Simulation:
         requests_count = 0
         factor = 1
         while self.current_time < self.simulation_run_time:
-            self.current_time = (time.time() - self.start_time)* factor
+            self.current_time = (time.time() - self.start_time) * factor
             if self.current_time >= self.events[0].time:
                 curr_event = heapq.heappop(self.events)
                 if curr_event.event_type == "parcel_arrival_event":
-                    heapq.heappush(self.events, Event(self.current_time + self._next_parcel_arrival_interval(), "parcel_arrival_event" ))
+                    heapq.heappush(
+                        self.events,
+                        Event(
+                            self.current_time + self._next_parcel_arrival_interval(),
+                            "parcel_arrival_event",
+                        ),
+                    )
                     node_pickup = self._generate_nodes()
                     node_delivery = self._generate_nodes()
                     self.requests[requests_count] = Request(
@@ -147,13 +173,26 @@ class Simulation:
 
                     requests_count += 1
                 if curr_event.event_type == "vehicle_departure":
-                    next_stop = self.vehicles_fleet[curr_event.vehicle_id].list_of_next_stops.pop(0)
-                    if len(self.vehicles_fleet[curr_event.vehicle_id].list_of_next_stops) == 0:
+                    next_stop = self.vehicles_fleet[
+                        curr_event.vehicle_id
+                    ].list_of_next_stops.pop(0)
+                    if (
+                        len(
+                            self.vehicles_fleet[
+                                curr_event.vehicle_id
+                            ].list_of_next_stops
+                        )
+                        == 0
+                    ):
                         self.vehicles_fleet[curr_event.vehicle_id].idle = True
-                    if next_stop.stop_type == 'pickup':
-                        self.requests[next_stop.request_id].pickup_time = self.current_time
-                    elif next_stop.stop_type == 'delivery':
-                        self.requests[next_stop.request_id].delivery_time = self.current_time
+                    if next_stop.stop_type == "pickup":
+                        self.requests[
+                            next_stop.request_id
+                        ].pickup_time = self.current_time
+                    elif next_stop.stop_type == "delivery":
+                        self.requests[
+                            next_stop.request_id
+                        ].delivery_time = self.current_time
                     print(
                         f"Time {self.current_time:.3f}: vehicle {curr_event.vehicle_id} departure {next_stop.stop_type} node"
                     )
