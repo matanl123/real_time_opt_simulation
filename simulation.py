@@ -18,7 +18,6 @@ def dist(node1, node2, dist_type):
     return dist
 
 
-## class Node defines the geographic representaion of point on the grid
 class Node:
     def __init__(self, x=0, y=0):
         self.xy = (x, y)
@@ -26,20 +25,21 @@ class Node:
 
 class Vehicle:
     def __init__(self, id, idle=True, idle_node=Node(0, 0)):
-        self.id = (id,)
+        self.id = id
         self.list_of_next_stops = []
         self.idle = idle
         self.idle_node = idle_node
 
     def add_new_stop(self, stop):
         self.list_of_next_stops.append(stop)
-
+        self.idle = False
+        return
 
 class Event:
     def __init__(self, id=None, time=None, event_type=None, vehicle_id=None):
         self.id = id
         self.time = time
-        self.event_type = event_type  ##(request_arrival, vehicle_departure(update pickup_time/delivery_time)/ delete first elemnt from list_of_next_stops) ## each time requst arrival
+        self.event_type = event_type
         self.vehicle_id = vehicle_id
 
     def __lt__(self, other):
@@ -53,18 +53,18 @@ class Request:
     def __init__(
         self, id, node_pickup, node_delivery, request_time, pickup_time, delivery_time
     ):
-        self.id = (id,)
-        self.node_pickup = (node_pickup,)
-        self.node_delivery = (node_delivery,)
-        self.request_time = (request_time,)
-        self.pickup_time = (pickup_time,)
+        self.id = id
+        self.node_pickup = node_pickup
+        self.node_delivery = node_delivery
+        self.request_time = request_time
+        self.pickup_time = pickup_time
         self.delivery_time = delivery_time
 
 
 class Stop:
     def __init__(self, stop_type, request_id, departure_time=None):
         self.stop_type = stop_type  ##pickup/delivery
-        self.request_id = (request_id,)
+        self.request_id = request_id
         if departure_time is None:
             self.departure_time = time.time()
         else:
@@ -80,7 +80,6 @@ class Simulation:
         self.current_time = 0
         self.velocity = velocity
         self.lamb = lamb
-        #time_delta = self.start_time + self.simulation_run_time
 
         self.events = [Event(0, self._next_parcel_arrival_interval(), "parcel_arrival_event")]
         self.requests = {}
@@ -117,36 +116,24 @@ class Simulation:
     #     return
 
 
-    #  FIX  THIS FUNCTION
     def _insert_new_request(self, request_id):
-        ## Dictionary for adding the the deliver time for each vehicle
         best_option = {}
-        ## Initial 2 Stop objects for each request
-        stop_pickup = Stop("pickup", request_id, None)
-        stop_delivery = Stop("delivery", request_id, None)
-        ## Iterate each vehicle in fleet. If it's on Idle mode then Insert to vehicle stop array, else check the min deliver time for vehicles
         for vehicle in self.vehicles_fleet:
             if vehicle.idle:
-                vehicle.add_new_stop(stop_pickup)
-                vehicle.add_new_stop(stop_delivery)
-                vehicle.idle = False
-                print(f"Request {request_id} was paired to vehicle {vehicle.id[0]}")
-                return
+                last_stop = vehicle.idle_node
+                departure_time = self.current_time
             else:
-                ## Calculate the time each vehicle can handle request
-                last_stop = vehicle.list_of_next_stops[-1]
-                distance_from_last_stop = dist(
-                    self.requests[last_stop.request_id[0]].node_delivery[0],
-                    self.requests[request_id].node_delivery[0],
-                    "euclidian",
-                )
-                best_option[vehicle.id[0]] = vehicle.list_of_next_stops[-1].departure_time + float(distance_from_last_stop)
+                last_stop = self.requests[vehicle.list_of_next_stops[-1].request_id].node_delivery
+                departure_time = vehicle.list_of_next_stops[-1].departure_time
+            distance_from_last_stop = dist(last_stop, self.requests[request_id].node_delivery, "euclidian")
+            best_option[vehicle.id] = departure_time + float(distance_from_last_stop)
 
-        ## Take the vehicle with the minimum deliver time
         vehicle_min_time = min(best_option, key=best_option.get)
+        stop_pickup = Stop("pickup", request_id, best_option[vehicle_min_time])
+        stop_delivery = Stop("delivery", request_id, best_option[vehicle_min_time] + dist(self.requests[request_id].node_delivery, self.requests[request_id].node_pickup, "euclidian",))
         print(f"Request {request_id} was paired to vehicle {vehicle_min_time}")
-        self.vehicles_fleet[vehicle_min_time].list_of_next_stops.append(stop_pickup)
-        self.vehicles_fleet[vehicle_min_time].list_of_next_stops.append(stop_delivery)
+        self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_pickup)
+        self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_delivery)
         return
 
     def _generate_nodes(self) -> Node:
@@ -154,7 +141,6 @@ class Simulation:
 
     def run(self):
         requests_count = 0
-        t = 0
         factor = 1
 
         ## Run Simulation Until the the and time pass
