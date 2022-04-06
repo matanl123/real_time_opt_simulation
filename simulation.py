@@ -96,24 +96,6 @@ class Simulation:
         return np.random.exponential(1/self.lamb)
 
 
-    # def _insert_vehicle_departure_event(self, request_id, vehicle_id):
-    #     last_stop_time = (
-    #         self.vehicles_fleet[vehicle_id].list_of_next_stops[-1].departure_time
-    #     )
-    #     last_request = self.vehicles_fleet[vehicle_id].list_of_next_stops[-1].request_id
-    #     distance_from_last_stop = dist(
-    #         self.requests[last_request].node_delivery[0],
-    #         self.requests[request_id].node_delivery[0],
-    #         "euclidian",
-    #     )
-    #     time_to_handle = last_stop_time + datetime.timedelta(
-    #         seconds=(float(distance_from_last_stop) / float(self.velocity))
-    #     )
-    #     event = Event(self.event_count, time_to_handle, "vehicle_departure", vehicle_id)
-    #     heapq.heappush(self.events, event)
-    #     return
-
-
     def _insert_new_request(self, request_id):
         best_option = {}
         for vehicle in self.vehicles_fleet:
@@ -142,11 +124,8 @@ class Simulation:
     def run(self):
         requests_count = 0
         factor = 1
-
-        ## Run Simulation Until the the and time pass
         while self.current_time < self.simulation_run_time:
             self.current_time = (time.time() - self.start_time)* factor
-            ## check if the next event time passed
             if self.current_time >= self.events[0].time:
                 curr_event = heapq.heappop(self.events)
                 if curr_event.event_type == "parcel_arrival_event":
@@ -168,9 +147,15 @@ class Simulation:
 
                     requests_count += 1
                 if curr_event.event_type == "vehicle_departure":
-                    self.vehicles_fleet[curr_event.vehicle_id].list_of_next_stops.pop(0)
+                    next_stop = self.vehicles_fleet[curr_event.vehicle_id].list_of_next_stops.pop(0)
+                    if len(self.vehicles_fleet[curr_event.vehicle_id].list_of_next_stops) == 0:
+                        self.vehicles_fleet[curr_event.vehicle_id].idle = True
+                    if next_stop.stop_type == 'pickup':
+                        self.requests[next_stop.request_id].pickup_time = self.current_time
+                    elif next_stop.stop_type == 'delivery':
+                        self.requests[next_stop.request_id].delivery_time = self.current_time
                     print(
-                        f"Time {self.current_time:.3f}: vehicle {curr_event.vehicle_id} departure"
+                        f"Time {self.current_time:.3f}: vehicle {curr_event.vehicle_id} departure {next_stop.stop_type} node"
                     )
 
 
