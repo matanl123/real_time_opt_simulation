@@ -180,6 +180,9 @@ class Simulation:
                         == 0
                     ):
                         self.vehicles_fleet[curr_event.vehicle_id].idle = True
+                        self.vehicles_fleet[
+                            curr_event.vehicle_id
+                        ].idle_node = self.requests[next_stop.request_id].node_delivery
                     if next_stop.stop_type == "pickup":
                         self.requests[
                             next_stop.request_id
