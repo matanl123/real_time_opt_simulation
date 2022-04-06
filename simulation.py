@@ -1,14 +1,9 @@
 import numpy as np
 import heapq
-
-# import datetime
 import time
 from random import randrange
 
 np.random.seed(0)
-
-PARCEL_ARRIVAL_EVENT = 0
-VEHICLE_DEPARTURE_EVENT = 1
 
 
 def dist(node1, node2, dist_type):
