@@ -1,10 +1,10 @@
 import numpy as np
 import heapq
 import time
-from random import randrange
+from random import randrange, seed
 
 np.random.seed(0)
-
+seed(0)
 
 def dist(node1, node2, dist_type):
     if dist_type == "euclidian":
@@ -95,7 +95,7 @@ class Simulation:
         return np.random.exponential(1 / self.lamb)
 
     def _insert_new_request(self, request_id):
-        best_option = {}
+        earliest_arrival_time = np.inf
         for vehicle in self.vehicles_fleet:
             if vehicle.idle:
                 last_stop = vehicle.idle_node
@@ -106,23 +106,25 @@ class Simulation:
                 ].node_delivery
                 departure_time = vehicle.list_of_next_stops[-1].departure_time
             distance_from_last_stop = dist(
-                last_stop, self.requests[request_id].node_delivery, "euclidian"
+                last_stop, self.requests[request_id].node_pickup, "euclidian"
             )
-            best_option[vehicle.id] = departure_time + float(distance_from_last_stop)
+            if departure_time + float(distance_from_last_stop) < earliest_arrival_time:
+                earliest_arrival_time = departure_time + float(distance_from_last_stop)
+                vehicle_min_time = vehicle.id
 
-        vehicle_min_time = min(best_option, key=best_option.get)
-        stop_pickup = Stop("pickup", request_id, best_option[vehicle_min_time])
+
+        stop_pickup = Stop("pickup", request_id, earliest_arrival_time)
         stop_delivery = Stop(
             "delivery",
             request_id,
-            best_option[vehicle_min_time]
+            earliest_arrival_time
             + dist(
-                self.requests[request_id].node_delivery,
                 self.requests[request_id].node_pickup,
+                self.requests[request_id].node_delivery,
                 "euclidian",
             ),
         )
-        print(f"Request {request_id} was paired to vehicle {vehicle_min_time}")
+        print(f"Time {self.current_time:.3f}: Request {request_id} was paired to vehicle {vehicle_min_time}")
         self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_pickup)
         self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_delivery)
         self.events.append(
@@ -138,7 +140,7 @@ class Simulation:
 
     def run(self):
         requests_count = 0
-        factor = 1
+        factor = 1000
         while self.current_time < self.simulation_run_time:
             self.current_time = (time.time() - self.start_time) * factor
             if self.current_time >= self.events[0].time:
@@ -171,6 +173,10 @@ class Simulation:
                     next_stop = self.vehicles_fleet[
                         curr_event.vehicle_id
                     ].list_of_next_stops.pop(0)
+                    print(
+                        f"Time {self.current_time:.3f}: vehicle {curr_event.vehicle_id} finished at {next_stop.stop_type} node of parcel {next_stop.request_id}"
+                    )
+
                     if (
                         len(
                             self.vehicles_fleet[
@@ -184,7 +190,7 @@ class Simulation:
                             curr_event.vehicle_id
                         ].idle_node = self.requests[next_stop.request_id].node_delivery
                         print(
-                            f"Vehicle {curr_event.vehicle_id} is Idle"
+                            f"Time {self.current_time:.3f}: Vehicle {curr_event.vehicle_id} is Idle"
                         )
                     if next_stop.stop_type == "pickup":
                         self.requests[
@@ -194,9 +200,7 @@ class Simulation:
                         self.requests[
                             next_stop.request_id
                         ].delivery_time = self.current_time
-                    print(
-                        f"Time {self.current_time:.3f}: vehicle {curr_event.vehicle_id} departure {next_stop.stop_type} node"
-                    )
+
 
 
 def main():
