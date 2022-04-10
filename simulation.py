@@ -183,6 +183,9 @@ class Simulation:
                         self.vehicles_fleet[
                             curr_event.vehicle_id
                         ].idle_node = self.requests[next_stop.request_id].node_delivery
+                        print(
+                            f"Vehicle {curr_event.vehicle_id} is Idle"
+                        )
                     if next_stop.stop_type == "pickup":
                         self.requests[
                             next_stop.request_id
@@ -197,7 +200,7 @@ class Simulation:
 
 
 def main():
-    simulation = Simulation(3, 50, 1, 0.5)
+    simulation = Simulation(3, 50, 1, 0.2)
     simulation.run()
 
 
