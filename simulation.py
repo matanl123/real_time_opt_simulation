@@ -6,6 +6,7 @@ from random import randrange, seed
 np.random.seed(0)
 seed(0)
 
+
 def dist(node1, node2, dist_type):
     if dist_type == "euclidian":
         dist = np.sqrt(np.sum(np.square(np.array(node1.xy) - np.array(node2.xy))))
@@ -58,9 +59,10 @@ class Request:
 
 
 class Stop:
-    def __init__(self, stop_type, request_id, departure_time=None):
+    def __init__(self, stop_type, request_id, node, departure_time=None):
         self.stop_type = stop_type
         self.request_id = request_id
+        self.node = node
         if departure_time is None:
             self.departure_time = time.time()
         else:
@@ -112,11 +114,16 @@ class Simulation:
                 earliest_arrival_time = departure_time + float(distance_from_last_stop)
                 vehicle_min_time = vehicle.id
 
-
-        stop_pickup = Stop("pickup", request_id, earliest_arrival_time)
+        stop_pickup = Stop(
+            "pickup",
+            request_id,
+            self.requests[request_id].node_pickup,
+            earliest_arrival_time,
+        )
         stop_delivery = Stop(
             "delivery",
             request_id,
+            self.requests[request_id].node_delivery,
             earliest_arrival_time
             + dist(
                 self.requests[request_id].node_pickup,
@@ -124,7 +131,9 @@ class Simulation:
                 "euclidian",
             ),
         )
-        print(f"Time {self.current_time:.3f}: Request {request_id} was paired to vehicle {vehicle_min_time}")
+        print(
+            f"Time {self.current_time:.3f}: Request {request_id} was paired to vehicle {vehicle_min_time}"
+        )
         self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_pickup)
         self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_delivery)
         self.events.append(
@@ -135,12 +144,73 @@ class Simulation:
         )
         return
 
+    def _cheapest_insertion(self, request_id):
+        best_route = {"vehicle_id": np.inf, "diff": np.inf, "insert_index": 0}
+        for vehicle in self.vehicles_fleet:
+            min_diff = np.inf
+            insert_index = 0
+            for i in range(1, len(vehicle.list_of_next_stops) - 1):
+                diff = dist(
+                    vehicle.list_of_next_stops[i].node,
+                    self.requests[request_id].node_pickup,
+                    "euclidian",
+                )
+                +dist(
+                    self.requests[request_id].node_pickup,
+                    vehicle.list_of_next_stops[i - 1].node,
+                    "euclidian",
+                ) - dist(
+                    vehicle.list_of_next_stops[i].node,
+                    vehicle.list_of_next_stops[i - 1].node,
+                    "euclidian",
+                )
+                if diff < min_diff:
+                    min_diff = diff
+                    insert_index = i - 1
+            if min_diff < best_route["diff"]:
+                best_route = {
+                    "vehicle_id": vehicle.id,
+                    "diff": min_diff,
+                    "insert_index": insert_index,
+                }
+        self.vehicles_fleet[best_route["vehicle_id"]].insert(
+            insert_index, self.requests[request_id].node_pickup
+        )
+
+        min_diff_delivery = np.inf
+        insert_index_delivery= 0
+        for j in range(
+            best_route["insert_index"] + 1,
+            len(self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops) - 1,
+        ):
+            diff = dist(
+                vehicle.list_of_next_stops[j].node,
+                self.requests[request_id].node_delivery,
+                "euclidian",
+            )
+            +dist(
+                self.requests[request_id].node_delivery,
+                vehicle.list_of_next_stops[j - 1].node,
+                "euclidian",
+            ) - dist(
+                vehicle.list_of_next_stops[j].node,
+                vehicle.list_of_next_stops[j - 1].node,
+                "euclidian",
+            )
+            if diff < min_diff_delivery:
+                min_diff_delivery = diff
+                insert_index_delivery = j - 1
+
+        self.vehicles_fleet[best_route["vehicle_id"]].insert(
+            insert_index_delivery, self.requests[request_id].node_delivery
+        )
+
     def _generate_nodes(self) -> Node:
         return Node(randrange(10), randrange(10))
 
     def run(self):
         requests_count = 0
-        factor = 1000
+        factor = 10
         while self.current_time < self.simulation_run_time:
             self.current_time = (time.time() - self.start_time) * factor
             if self.current_time >= self.events[0].time:
@@ -200,7 +270,6 @@ class Simulation:
                         self.requests[
                             next_stop.request_id
                         ].delivery_time = self.current_time
-
 
 
 def main():
