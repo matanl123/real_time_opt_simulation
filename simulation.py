@@ -134,14 +134,12 @@ class Simulation:
         print(
             f"Time {self.current_time:.3f}: Request {request_id} was paired to vehicle {vehicle_min_time}"
         )
+        if self.vehicles_fleet[vehicle_min_time].idle:
+            self.events.append(
+                Event(stop_pickup.departure_time, "vehicle_departure", vehicle_min_time)
+            )
         self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_pickup)
         self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_delivery)
-        self.events.append(
-            Event(stop_pickup.departure_time, "vehicle_departure", vehicle_min_time)
-        )
-        self.events.append(
-            Event(stop_delivery.departure_time, "vehicle_departure", vehicle_min_time)
-        )
         return
 
     def _cheapest_insertion(self, request_id):
@@ -178,7 +176,7 @@ class Simulation:
         )
 
         min_diff_delivery = np.inf
-        insert_index_delivery= 0
+        insert_index_delivery = 0
         for j in range(
             best_route["insert_index"] + 1,
             len(self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops) - 1,
@@ -207,6 +205,7 @@ class Simulation:
 
     def _generate_nodes(self) -> Node:
         return Node(randrange(10), randrange(10))
+
 
     def run(self):
         requests_count = 0
@@ -270,6 +269,14 @@ class Simulation:
                         self.requests[
                             next_stop.request_id
                         ].delivery_time = self.current_time
+
+                    if not self.vehicles_fleet[curr_event.vehicle_id].idle:
+                        self.events.append(
+                            Event(self.current_time + dist(next_stop.node, self.vehicles_fleet[
+                                curr_event.vehicle_id
+                            ].list_of_next_stops[0].node, "euclidian"), "vehicle_departure", curr_event.vehicle_id)
+                        )
+
 
 
 def main():
