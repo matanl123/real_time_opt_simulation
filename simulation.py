@@ -257,6 +257,11 @@ class Simulation:
         )
         return
 
+    # def _destroy_and_repair(self, shuffle_type):
+    #     if shuffle_type == 'random':
+    #         vihacle_max_route
+
+
     def _generate_nodes(self) -> Node:
         return Node(randrange(10), randrange(10))
 
@@ -341,7 +346,7 @@ class Simulation:
 
 
 def main():
-    simulation = Simulation(3, 50000, 1, 0.2)
+    simulation = Simulation(3, 50000, 1, 2)
     simulation.run()
 
 
