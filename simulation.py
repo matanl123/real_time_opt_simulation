@@ -304,7 +304,7 @@ class Simulation:
                     if diff < min_diff:
                         min_diff = diff
                         insert_index = i - 1
-                        number_of_next_deliveries = vehicle.list_of_next_stops[i-1].number_of_next_deliveries
+                        number_of_next_deliveries = vehicle.list_of_next_stops[i].number_of_next_deliveries
             if min_diff < best_route["diff"]:
                 best_route = {
                     "vehicle_id": vehicle.id,
@@ -366,9 +366,9 @@ class Simulation:
                 * length_diff_delivery
             )
             if diff_delivery < min_diff_delivery:
-                min_diff_delivery = diff
+                min_diff_delivery = diff_delivery
                 insert_index_delivery = j - 1
-                number_of_next_deliveries = self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops[j-1].number_of_next_deliveries
+                number_of_next_deliveries = self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops[j].number_of_next_deliveries
 
 
         self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops.insert(
@@ -380,7 +380,7 @@ class Simulation:
                 number_of_next_deliveries=number_of_next_deliveries,
             ),
         )
-        for i in range(0,insert_index_delivery):
+        for i in range(0, insert_index_delivery):
             self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops[i].number_of_next_deliveries += 1
 
         print(
