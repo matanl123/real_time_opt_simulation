@@ -278,7 +278,6 @@ class Simulation:
                     "euclidian",
                 )
                 min_diff = diff
-                insert_index = 0
                 number_of_next_deliveries = 1
             else:
                 for i in range(1, len(vehicle.list_of_next_stops)):
@@ -298,19 +297,21 @@ class Simulation:
                     )
                     diff = (
                         length_diff * self.alpha
-                        + vehicle.list_of_next_stops[i].number_of_next_deliveries
+                        + vehicle.list_of_next_stops[i - 1].number_of_next_deliveries
                         * length_diff
                     )
                     if diff < min_diff:
                         min_diff = diff
                         insert_index = i - 1
-                        number_of_next_deliveries = vehicle.list_of_next_stops[i].number_of_next_deliveries
+                        number_of_next_deliveries = vehicle.list_of_next_stops[
+                            i - 1
+                        ].number_of_next_deliveries
             if min_diff < best_route["diff"]:
                 best_route = {
                     "vehicle_id": vehicle.id,
                     "diff": min_diff,
                     "insert_index": insert_index,
-                    "number_of_next_deliveries": number_of_next_deliveries
+                    "number_of_next_deliveries": number_of_next_deliveries,
                 }
 
         self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops.insert(
@@ -331,45 +332,53 @@ class Simulation:
                 )
             )
             self.vehicles_fleet[best_route["vehicle_id"]].idle = False
-        min_diff_delivery = np.inf
-        insert_index_delivery = 0
-        for j in range(
-            best_route["insert_index"],
-            len(self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops) - 1,
-        ):
-            length_diff_delivery = dist(
-                self.vehicles_fleet[best_route["vehicle_id"]]
-                .list_of_next_stops[j]
-                .node,
-                self.requests[request_id].node_delivery,
-                "euclidian",
-            )
-            +dist(
-                self.requests[request_id].node_delivery,
-                self.vehicles_fleet[best_route["vehicle_id"]]
-                .list_of_next_stops[j - 1]
-                .node,
-                "euclidian",
-            ) - dist(
-                self.vehicles_fleet[best_route["vehicle_id"]]
-                .list_of_next_stops[j]
-                .node,
-                self.vehicles_fleet[best_route["vehicle_id"]]
-                .list_of_next_stops[j - 1]
-                .node,
-                "euclidian",
-            )
+            insert_index_delivery = 1
+        else:
+            min_diff_delivery = np.inf
+            insert_index_delivery = 0
+            for j in range(
+                best_route["insert_index"],
+                len(self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops)
+                - 1,
+            ):
+                length_diff_delivery = dist(
+                    self.vehicles_fleet[best_route["vehicle_id"]]
+                    .list_of_next_stops[j]
+                    .node,
+                    self.requests[request_id].node_delivery,
+                    "euclidian",
+                )
+                +dist(
+                    self.requests[request_id].node_delivery,
+                    self.vehicles_fleet[best_route["vehicle_id"]]
+                    .list_of_next_stops[j - 1]
+                    .node,
+                    "euclidian",
+                ) - dist(
+                    self.vehicles_fleet[best_route["vehicle_id"]]
+                    .list_of_next_stops[j]
+                    .node,
+                    self.vehicles_fleet[best_route["vehicle_id"]]
+                    .list_of_next_stops[j - 1]
+                    .node,
+                    "euclidian",
+                )
 
-            diff_delivery = (
-                length_diff_delivery * self.alpha
-                + self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops[j].number_of_next_deliveries
-                * length_diff_delivery
-            )
-            if diff_delivery < min_diff_delivery:
-                min_diff_delivery = diff_delivery
-                insert_index_delivery = j - 1
-                number_of_next_deliveries = self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops[j].number_of_next_deliveries
-
+                diff_delivery = (
+                    length_diff_delivery * self.alpha
+                    + self.vehicles_fleet[best_route["vehicle_id"]]
+                    .list_of_next_stops[j - 1]
+                    .number_of_next_deliveries
+                    * length_diff_delivery
+                )
+                if diff_delivery < min_diff_delivery:
+                    min_diff_delivery = diff_delivery
+                    insert_index_delivery = j - 1
+                    number_of_next_deliveries = (
+                        self.vehicles_fleet[best_route["vehicle_id"]]
+                        .list_of_next_stops[j - 1]
+                        .number_of_next_deliveries
+                    )
 
         self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops.insert(
             insert_index_delivery,
@@ -380,8 +389,10 @@ class Simulation:
                 number_of_next_deliveries=number_of_next_deliveries,
             ),
         )
-        for i in range(0, insert_index_delivery):
-            self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops[i].number_of_next_deliveries += 1
+        for inx in range(0, insert_index_delivery):
+            self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops[
+                inx
+            ].number_of_next_deliveries += 1
 
         print(
             f"Time {self.current_time:.3f}: Request {request_id} was paired to vehicle {best_route['vehicle_id']}"
