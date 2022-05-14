@@ -310,7 +310,7 @@ class Simulation:
                     )
                     diff_pickup = (
                         length_diff * self.alpha
-                        + vehicle.list_of_next_stops[i - 1].number_of_next_deliveries
+                        + vehicle.list_of_next_stops[i].number_of_next_deliveries
                         * length_diff
                     )
                     for j in (i , len(vehicle.list_of_next_stops) - 2):
@@ -332,16 +332,16 @@ class Simulation:
                             [
                                 dist(
                                     vehicle.list_of_next_stops[z].node,
-                                    vehicle.list_of_next_stops[z - 1].node,
+                                    vehicle.list_of_next_stops[z + 1].node,
                                     "euclidian",
                                 )
-                                for z in range(1, j)
+                                for z in range(0, j)
                             ]
                         )
                         diff_delivery = (
                             length_diff_delivery * self.alpha
                             + vehicle.list_of_next_stops[
-                                j - 1
+                                j
                             ].number_of_next_deliveries
                             * length_diff_delivery
                             + delivery_time_addition
@@ -349,8 +349,8 @@ class Simulation:
 
                         if diff_pickup + diff_delivery < min_diff:
                             min_diff = diff_pickup + diff_delivery
-                            pickup_insert_index = i - 1
-                            delivery_insert_index = j - 1
+                            pickup_insert_index = i
+                            delivery_insert_index = j
 
             if min_diff < best_diff:
                 best_vehicle_id = vehicle.id
