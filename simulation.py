@@ -91,9 +91,10 @@ class Simulation:
             Event(self._next_parcel_arrival_interval(), "parcel_arrival_event")
         ]
         self.requests = {}
-        self.start_time = time.time()
+
         self.end_time = self.start_time + self.simulation_run_time
         self.alpha = alpha
+
 
     def _init_vehicles_fleet(self):
         vehicle_array = []
@@ -105,166 +106,166 @@ class Simulation:
     def _next_parcel_arrival_interval(self):
         return np.random.exponential(1 / self.lamb)
 
-    def _insert_new_request(self, request_id):
-        earliest_arrival_time = np.inf
-        for vehicle in self.vehicles_fleet:
-            if vehicle.idle:
-                last_stop = vehicle.idle_node
-                departure_time = self.current_time
-            else:
-                last_stop = self.requests[
-                    vehicle.list_of_next_stops[-1].request_id
-                ].node_delivery
-                departure_time = vehicle.list_of_next_stops[-1].departure_time
-            distance_from_last_stop = dist(
-                last_stop, self.requests[request_id].node_pickup, "euclidian"
-            )
-            if departure_time + float(distance_from_last_stop) < earliest_arrival_time:
-                earliest_arrival_time = departure_time + float(distance_from_last_stop)
-                vehicle_min_time = vehicle.id
-
-        stop_pickup = Stop(
-            "pickup",
-            request_id,
-            self.requests[request_id].node_pickup,
-            earliest_arrival_time,
-        )
-        stop_delivery = Stop(
-            "delivery",
-            request_id,
-            self.requests[request_id].node_delivery,
-            earliest_arrival_time
-            + dist(
-                self.requests[request_id].node_pickup,
-                self.requests[request_id].node_delivery,
-                "euclidian",
-            ),
-        )
-        print(
-            f"Time {self.current_time:.3f}: Request {request_id} was paired to vehicle {vehicle_min_time}"
-        )
-        if self.vehicles_fleet[vehicle_min_time].idle:
-            self.events.append(
-                Event(stop_pickup.departure_time, "vehicle_departure", vehicle_min_time)
-            )
-        self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_pickup)
-        self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_delivery)
-        return
-
-    def _cheapest_insertion(self, request_id):
-        best_route = {"vehicle_id": np.inf, "diff": np.inf, "insert_index": 0}
-        for vehicle in self.vehicles_fleet:
-            min_diff = np.inf
-            insert_index = 0
-            if vehicle.idle:
-                min_diff = dist(
-                    vehicle.idle_node,
-                    self.requests[request_id].node_pickup,
-                    "euclidian",
-                )
-                best_route = {
-                    "vehicle_id": vehicle.id,
-                    "diff": min_diff,
-                    "insert_index": insert_index,
-                }
-                break
-            else:
-                for i in range(1, len(vehicle.list_of_next_stops)):
-                    diff = dist(
-                        vehicle.list_of_next_stops[i].node,
-                        self.requests[request_id].node_pickup,
-                        "euclidian",
-                    )
-                    +dist(
-                        self.requests[request_id].node_pickup,
-                        vehicle.list_of_next_stops[i - 1].node,
-                        "euclidian",
-                    ) - dist(
-                        vehicle.list_of_next_stops[i].node,
-                        vehicle.list_of_next_stops[i - 1].node,
-                        "euclidian",
-                    )
-                    if diff < min_diff:
-                        min_diff = diff
-                        insert_index = i - 1
-
-            if min_diff < best_route["diff"]:
-                best_route = {
-                    "vehicle_id": vehicle.id,
-                    "diff": min_diff,
-                    "insert_index": insert_index,
-                }
-
-        self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops.insert(
-            insert_index,
-            Stop("pickup", request_id, self.requests[request_id].node_pickup),
-        )
-
-        if self.vehicles_fleet[best_route["vehicle_id"]].idle:
-            self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops.insert(
-                1,
-                Stop(
-                    "delivery",
-                    request_id,
-                    self.requests[request_id].node_delivery,
-                ),
-            )
-            self.events.append(
-                Event(
-                    self.current_time + min_diff,
-                    "vehicle_departure",
-                    self.vehicles_fleet[best_route["vehicle_id"]].id,
-                )
-            )
-
-            self.vehicles_fleet[best_route["vehicle_id"]].idle = False
-        else:
-            min_diff_delivery = np.inf
-            insert_index_delivery = 0
-            for j in range(
-                best_route["insert_index"],
-                len(self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops)
-                - 1,
-            ):
-                diff = dist(
-                    self.vehicles_fleet[best_route["vehicle_id"]]
-                    .list_of_next_stops[j]
-                    .node,
-                    self.requests[request_id].node_delivery,
-                    "euclidian",
-                )
-                +dist(
-                    self.requests[request_id].node_delivery,
-                    self.vehicles_fleet[best_route["vehicle_id"]]
-                    .list_of_next_stops[j - 1]
-                    .node,
-                    "euclidian",
-                ) - dist(
-                    self.vehicles_fleet[best_route["vehicle_id"]]
-                    .list_of_next_stops[j]
-                    .node,
-                    self.vehicles_fleet[best_route["vehicle_id"]]
-                    .list_of_next_stops[j - 1]
-                    .node,
-                    "euclidian",
-                )
-                if diff < min_diff_delivery:
-                    min_diff_delivery = diff
-                    insert_index_delivery = j - 1
-
-            self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops.insert(
-                insert_index_delivery,
-                Stop(
-                    "delivery",
-                    request_id,
-                    self.requests[request_id].node_delivery,
-                ),
-            )
-
-        print(
-            f"Time {self.current_time:.3f}: Request {request_id} was paired to vehicle {best_route['vehicle_id']}"
-        )
-        return
+    # def _insert_new_request(self, request_id):
+    #     earliest_arrival_time = np.inf
+    #     for vehicle in self.vehicles_fleet:
+    #         if vehicle.idle:
+    #             last_stop = vehicle.idle_node
+    #             departure_time = self.current_time
+    #         else:
+    #             last_stop = self.requests[
+    #                 vehicle.list_of_next_stops[-1].request_id
+    #             ].node_delivery
+    #             departure_time = vehicle.list_of_next_stops[-1].departure_time
+    #         distance_from_last_stop = dist(
+    #             last_stop, self.requests[request_id].node_pickup, "euclidian"
+    #         )
+    #         if departure_time + float(distance_from_last_stop) < earliest_arrival_time:
+    #             earliest_arrival_time = departure_time + float(distance_from_last_stop)
+    #             vehicle_min_time = vehicle.id
+    #
+    #     stop_pickup = Stop(
+    #         "pickup",
+    #         request_id,
+    #         self.requests[request_id].node_pickup,
+    #         earliest_arrival_time,
+    #     )
+    #     stop_delivery = Stop(
+    #         "delivery",
+    #         request_id,
+    #         self.requests[request_id].node_delivery,
+    #         earliest_arrival_time
+    #         + dist(
+    #             self.requests[request_id].node_pickup,
+    #             self.requests[request_id].node_delivery,
+    #             "euclidian",
+    #         ),
+    #     )
+    #     print(
+    #         f"Time {self.current_time:.3f}: Request {request_id} was paired to vehicle {vehicle_min_time}"
+    #     )
+    #     if self.vehicles_fleet[vehicle_min_time].idle:
+    #         self.events.append(
+    #             Event(stop_pickup.departure_time, "vehicle_departure", vehicle_min_time)
+    #         )
+    #     self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_pickup)
+    #     self.vehicles_fleet[vehicle_min_time].add_new_stop(stop_delivery)
+    #     return
+    #
+    # def _cheapest_insertion(self, request_id):
+    #     best_route = {"vehicle_id": np.inf, "diff": np.inf, "insert_index": 0}
+    #     for vehicle in self.vehicles_fleet:
+    #         min_diff = np.inf
+    #         insert_index = 0
+    #         if vehicle.idle:
+    #             min_diff = dist(
+    #                 vehicle.idle_node,
+    #                 self.requests[request_id].node_pickup,
+    #                 "euclidian",
+    #             )
+    #             best_route = {
+    #                 "vehicle_id": vehicle.id,
+    #                 "diff": min_diff,
+    #                 "insert_index": insert_index,
+    #             }
+    #             break
+    #         else:
+    #             for i in range(1, len(vehicle.list_of_next_stops)):
+    #                 diff = dist(
+    #                     vehicle.list_of_next_stops[i].node,
+    #                     self.requests[request_id].node_pickup,
+    #                     "euclidian",
+    #                 )
+    #                 +dist(
+    #                     self.requests[request_id].node_pickup,
+    #                     vehicle.list_of_next_stops[i - 1].node,
+    #                     "euclidian",
+    #                 ) - dist(
+    #                     vehicle.list_of_next_stops[i].node,
+    #                     vehicle.list_of_next_stops[i - 1].node,
+    #                     "euclidian",
+    #                 )
+    #                 if diff < min_diff:
+    #                     min_diff = diff
+    #                     insert_index = i - 1
+    #
+    #         if min_diff < best_route["diff"]:
+    #             best_route = {
+    #                 "vehicle_id": vehicle.id,
+    #                 "diff": min_diff,
+    #                 "insert_index": insert_index,
+    #             }
+    #
+    #     self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops.insert(
+    #         insert_index,
+    #         Stop("pickup", request_id, self.requests[request_id].node_pickup),
+    #     )
+    #
+    #     if self.vehicles_fleet[best_route["vehicle_id"]].idle:
+    #         self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops.insert(
+    #             1,
+    #             Stop(
+    #                 "delivery",
+    #                 request_id,
+    #                 self.requests[request_id].node_delivery,
+    #             ),
+    #         )
+    #         self.events.append(
+    #             Event(
+    #                 self.current_time + min_diff,
+    #                 "vehicle_departure",
+    #                 self.vehicles_fleet[best_route["vehicle_id"]].id,
+    #             )
+    #         )
+    #
+    #         self.vehicles_fleet[best_route["vehicle_id"]].idle = False
+    #     else:
+    #         min_diff_delivery = np.inf
+    #         insert_index_delivery = 0
+    #         for j in range(
+    #             best_route["insert_index"],
+    #             len(self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops)
+    #             - 1,
+    #         ):
+    #             diff = dist(
+    #                 self.vehicles_fleet[best_route["vehicle_id"]]
+    #                 .list_of_next_stops[j]
+    #                 .node,
+    #                 self.requests[request_id].node_delivery,
+    #                 "euclidian",
+    #             )
+    #             +dist(
+    #                 self.requests[request_id].node_delivery,
+    #                 self.vehicles_fleet[best_route["vehicle_id"]]
+    #                 .list_of_next_stops[j - 1]
+    #                 .node,
+    #                 "euclidian",
+    #             ) - dist(
+    #                 self.vehicles_fleet[best_route["vehicle_id"]]
+    #                 .list_of_next_stops[j]
+    #                 .node,
+    #                 self.vehicles_fleet[best_route["vehicle_id"]]
+    #                 .list_of_next_stops[j - 1]
+    #                 .node,
+    #                 "euclidian",
+    #             )
+    #             if diff < min_diff_delivery:
+    #                 min_diff_delivery = diff
+    #                 insert_index_delivery = j - 1
+    #
+    #         self.vehicles_fleet[best_route["vehicle_id"]].list_of_next_stops.insert(
+    #             insert_index_delivery,
+    #             Stop(
+    #                 "delivery",
+    #                 request_id,
+    #                 self.requests[request_id].node_delivery,
+    #             ),
+    #         )
+    #
+    #     print(
+    #         f"Time {self.current_time:.3f}: Request {request_id} was paired to vehicle {best_route['vehicle_id']}"
+    #     )
+    #     return
 
     def _cheapest_insertion_v2(self, request_id):
         best_vehicle_id = -1
@@ -403,7 +404,7 @@ class Simulation:
             ].number_of_next_deliveries += 1
 
         print(
-            f"Time {self.current_time:.3f}: Request {request_id} was paired to vehicle {best_vehicle_id}"
+            f"Time {self.current_time:.3f}: Request {request_id} was assigned to vehicle {best_vehicle_id}"
         )
         return
 
@@ -412,9 +413,11 @@ class Simulation:
 
     def run(self):
         requests_count = 0
-        factor = 1
+        factor = 100
+        start_time = time.time()
+        self.current_time = 0
         while self.current_time < self.simulation_run_time:
-            self.current_time = (time.time() - self.start_time) * factor
+            self.current_time = (time.time() - start_time) * factor
             if self.current_time >= self.events[0].time:
                 curr_event = heapq.heappop(self.events)
                 if curr_event.event_type == "parcel_arrival_event":
@@ -423,7 +426,7 @@ class Simulation:
                         Event(
                             self.current_time + self._next_parcel_arrival_interval(),
                             "parcel_arrival_event",
-                        ),
+                        )
                     )
                     node_pickup = self._generate_nodes()
                     node_delivery = self._generate_nodes()
@@ -435,11 +438,10 @@ class Simulation:
                         None,
                         None,
                     )
-                    self._cheapest_insertion_v2(requests_count)
                     print(
                         f"Time {self.current_time:.3f}: parcel {requests_count} arrive at node {node_pickup.xy}, destination {node_delivery.xy}"
                     )
-
+                    self._cheapest_insertion_v2(requests_count)
                     requests_count += 1
                 if curr_event.event_type == "vehicle_departure":
                     next_stop = self.vehicles_fleet[
@@ -462,7 +464,7 @@ class Simulation:
                             curr_event.vehicle_id
                         ].idle_node = self.requests[next_stop.request_id].node_delivery
                         print(
-                            f"Time {self.current_time:.3f}: Vehicle {curr_event.vehicle_id} is Idle"
+                            f"Time {self.current_time:.3f}: Vehicle {curr_event.vehicle_id} is idle at node {next_stop.node.xy}"
                         )
                     if next_stop.stop_type == "pickup":
                         self.requests[
@@ -483,7 +485,7 @@ class Simulation:
                                     .list_of_next_stops[0]
                                     .node,
                                     "euclidian",
-                                ),
+                                ) / self.velocity,
                                 "vehicle_departure",
                                 curr_event.vehicle_id,
                             )
