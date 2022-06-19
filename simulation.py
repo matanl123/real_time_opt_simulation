@@ -94,7 +94,6 @@ class Simulation:
 
         self.alpha = alpha
 
-
     def _init_vehicles_fleet(self):
         vehicle_array = []
         for i in range(0, self.fleet_size):
@@ -159,7 +158,7 @@ class Simulation:
                         * length_diff
                     )
                     # insert the delivery point after the pickup
-                    for j in (i , len(vehicle.list_of_next_stops) - 2):
+                    for j in (i, len(vehicle.list_of_next_stops) - 2):
                         length_diff_delivery = dist(
                             vehicle.list_of_next_stops[j].node,
                             self.requests[request_id].node_delivery,
@@ -188,9 +187,7 @@ class Simulation:
                         # calculate the delivery cost function
                         diff_delivery = (
                             length_diff_delivery * self.alpha
-                            + vehicle.list_of_next_stops[
-                                j
-                            ].number_of_next_deliveries
+                            + vehicle.list_of_next_stops[j].number_of_next_deliveries
                             * length_diff_delivery
                             + delivery_time_addition
                         )
@@ -262,7 +259,7 @@ class Simulation:
 
     def run(self):
         requests_count = 0
-        factor = 100
+        factor = 5
         start_time = time.time()
         self.current_time = 0
         while self.current_time < self.simulation_run_time:
@@ -275,7 +272,7 @@ class Simulation:
                         Event(
                             self.current_time + self._next_parcel_arrival_interval(),
                             "parcel_arrival_event",
-                        )
+                        ),
                     )
                     node_pickup = self._generate_nodes()
                     node_delivery = self._generate_nodes()
@@ -335,7 +332,8 @@ class Simulation:
                                     .list_of_next_stops[0]
                                     .node,
                                     "euclidian",
-                                ) / self.velocity,
+                                )
+                                / self.velocity,
                                 "vehicle_departure",
                                 curr_event.vehicle_id,
                             )
