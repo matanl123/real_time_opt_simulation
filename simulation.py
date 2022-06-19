@@ -92,7 +92,6 @@ class Simulation:
         ]
         self.requests = {}
 
-        self.end_time = self.start_time + self.simulation_run_time
         self.alpha = alpha
 
 
