@@ -106,13 +106,16 @@ class Simulation:
         return np.random.exponential(1 / self.lamb)
 
     def _cheapest_insertion_v2(self, request_id):
+        # initial best parameters
         best_vehicle_id = -1
         best_diff = np.inf
         best_pickup_insert_index = 0
         best_delivery_insert_index = 0
+        # check each vehicle in the fleet
         for vehicle in self.vehicles_fleet:
             min_diff = np.inf
             pickup_insert_index = 0
+            # if is idle, calculate route of only onw pickup and delivery
             if vehicle.idle:
                 diff_pickup = dist(
                     vehicle.idle_node,
@@ -132,7 +135,9 @@ class Simulation:
                 number_of_next_deliveries_delivery_node = 0
                 min_diff = diff_pickup + diff_delivery
             else:
+                # for each vehicle check the cost in each part of it's route
                 for i in range(0, len(vehicle.list_of_next_stops) - 1):
+                    # calculate the distance different after adding the stop
                     length_diff = dist(
                         vehicle.list_of_next_stops[i].node,
                         self.requests[request_id].node_pickup,
@@ -147,11 +152,13 @@ class Simulation:
                         vehicle.list_of_next_stops[i + 1].node,
                         "euclidian",
                     )
+                    # calculate the pickup cost function
                     diff_pickup = (
                         length_diff * self.alpha
                         + vehicle.list_of_next_stops[i].number_of_next_deliveries
                         * length_diff
                     )
+                    # insert the delivery point after the pickup
                     for j in (i , len(vehicle.list_of_next_stops) - 2):
                         length_diff_delivery = dist(
                             vehicle.list_of_next_stops[j].node,
@@ -167,6 +174,7 @@ class Simulation:
                             vehicle.list_of_next_stops[j + 1].node,
                             "euclidian",
                         )
+                        # calculate the delivery addition time for the new stop
                         delivery_time_addition = sum(
                             [
                                 dist(
@@ -177,6 +185,7 @@ class Simulation:
                                 for z in range(0, j)
                             ]
                         )
+                        # calculate the delivery cost function
                         diff_delivery = (
                             length_diff_delivery * self.alpha
                             + vehicle.list_of_next_stops[
@@ -185,17 +194,18 @@ class Simulation:
                             * length_diff_delivery
                             + delivery_time_addition
                         )
-
+                        # if the minimum cost for pickup and delivery then update best params for the vehicle
                         if diff_pickup + diff_delivery < min_diff:
                             min_diff = diff_pickup + diff_delivery
                             pickup_insert_index = i
                             delivery_insert_index = j
-
+            # check if the current vehicle is the cheapest insertion
             if min_diff < best_diff:
                 best_vehicle_id = vehicle.id
                 best_diff = min_diff
                 best_pickup_insert_index = pickup_insert_index
                 best_delivery_insert_index = delivery_insert_index
+                # check the number of the delivery for both stops
                 if not self.vehicles_fleet[best_vehicle_id].idle:
                     number_of_next_deliveries_pickup_node = (
                         self.vehicles_fleet[best_vehicle_id]
@@ -207,6 +217,7 @@ class Simulation:
                         .list_of_next_stops[best_delivery_insert_index - 1]
                         .number_of_next_deliveries
                     )
+        # insert the pickup chosen stop
         self.vehicles_fleet[best_vehicle_id].list_of_next_stops.insert(
             best_pickup_insert_index,
             Stop(
@@ -216,7 +227,7 @@ class Simulation:
                 number_of_next_deliveries=number_of_next_deliveries_pickup_node,
             ),
         )
-
+        # insert the delivery chosen stop
         self.vehicles_fleet[best_vehicle_id].list_of_next_stops.insert(
             best_delivery_insert_index,
             Stop(
@@ -235,7 +246,7 @@ class Simulation:
                 )
             )
             self.vehicles_fleet[best_vehicle_id].idle = False
-
+        # add 1 for every stop before the new delivery stop
         for stop in range(0, best_delivery_insert_index):
             self.vehicles_fleet[best_vehicle_id].list_of_next_stops[
                 stop
@@ -304,6 +315,7 @@ class Simulation:
                         print(
                             f"Time {self.current_time:.3f}: Vehicle {curr_event.vehicle_id} is idle at node {next_stop.node.xy}"
                         )
+
                     if next_stop.stop_type == "pickup":
                         self.requests[
                             next_stop.request_id
