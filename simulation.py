@@ -116,6 +116,7 @@ class Simulation:
             pickup_insert_index = 0
             # if is idle, calculate route of only onw pickup and delivery
             if vehicle.idle:
+                ### change euclidian to be default ###
                 diff_pickup = dist(
                     vehicle.idle_node,
                     self.requests[request_id].node_pickup,
@@ -137,7 +138,9 @@ class Simulation:
                 # for each vehicle check the cost in each part of it's route
                 for i in range(0, len(vehicle.list_of_next_stops) - 1):
                     # calculate the distance different after adding the stop
-                    length_diff = dist(
+
+                    ### what about append option ###
+                    length_diff_pickup = dist(
                         vehicle.list_of_next_stops[i].node,
                         self.requests[request_id].node_pickup,
                         "euclidian",
@@ -152,13 +155,16 @@ class Simulation:
                         "euclidian",
                     )
                     # calculate the pickup cost function
+                    ### check alpha = 0 ###
                     diff_pickup = (
-                        length_diff * self.alpha
+                        length_diff_pickup * self.alpha
                         + vehicle.list_of_next_stops[i].number_of_next_deliveries
-                        * length_diff
+                        * length_diff_pickup
                     )
                     # insert the delivery point after the pickup
-                    for j in (i, len(vehicle.list_of_next_stops) - 2):
+                    ### check case when delivey right after the pickup ###
+                    ### check the bug in the out of range ###
+                    for j in (i + 1, len(vehicle.list_of_next_stops) - 2):
                         length_diff_delivery = dist(
                             vehicle.list_of_next_stops[j].node,
                             self.requests[request_id].node_delivery,
@@ -174,6 +180,7 @@ class Simulation:
                             "euclidian",
                         )
                         # calculate the delivery addition time for the new stop
+                        ### need to take into acount the pickup node and the delivery node###
                         delivery_time_addition = sum(
                             [
                                 dist(
@@ -181,10 +188,11 @@ class Simulation:
                                     vehicle.list_of_next_stops[z + 1].node,
                                     "euclidian",
                                 )
-                                for z in range(0, j)
+                                for z in range(0, j - 1)
                             ]
                         )
                         # calculate the delivery cost function
+                        ### length_diff_delivery + length_diff_pickup for the case that delivery right after the pickup ###
                         diff_delivery = (
                             length_diff_delivery * self.alpha
                             + vehicle.list_of_next_stops[j].number_of_next_deliveries
@@ -192,6 +200,7 @@ class Simulation:
                             + delivery_time_addition
                         )
                         # if the minimum cost for pickup and delivery then update best params for the vehicle
+                        ### add the best vehicle here ###
                         if diff_pickup + diff_delivery < min_diff:
                             min_diff = diff_pickup + diff_delivery
                             pickup_insert_index = i
@@ -202,21 +211,21 @@ class Simulation:
                 best_diff = min_diff
                 best_pickup_insert_index = pickup_insert_index
                 best_delivery_insert_index = delivery_insert_index
-                # check the number of the delivery for both stops
-                if not self.vehicles_fleet[best_vehicle_id].idle:
-                    number_of_next_deliveries_pickup_node = (
-                        self.vehicles_fleet[best_vehicle_id]
-                        .list_of_next_stops[best_pickup_insert_index - 1]
-                        .number_of_next_deliveries
-                    )
-                    number_of_next_deliveries_delivery_node = (
-                        self.vehicles_fleet[best_vehicle_id]
-                        .list_of_next_stops[best_delivery_insert_index - 1]
-                        .number_of_next_deliveries
-                    )
+        # check the number of the delivery for both stops
+        if not self.vehicles_fleet[best_vehicle_id].idle:
+            number_of_next_deliveries_pickup_node = (
+                self.vehicles_fleet[best_vehicle_id]
+                .list_of_next_stops[best_pickup_insert_index]
+                .number_of_next_deliveries
+            )
+            number_of_next_deliveries_delivery_node = (
+                self.vehicles_fleet[best_vehicle_id]
+                .list_of_next_stops[best_delivery_insert_index]
+                .number_of_next_deliveries
+            )
         # insert the pickup chosen stop
         self.vehicles_fleet[best_vehicle_id].list_of_next_stops.insert(
-            best_pickup_insert_index,
+            best_pickup_insert_index + 1,
             Stop(
                 "pickup",
                 request_id,
@@ -226,7 +235,7 @@ class Simulation:
         )
         # insert the delivery chosen stop
         self.vehicles_fleet[best_vehicle_id].list_of_next_stops.insert(
-            best_delivery_insert_index,
+            best_delivery_insert_index + 2,
             Stop(
                 "delivery",
                 request_id,
@@ -244,7 +253,7 @@ class Simulation:
             )
             self.vehicles_fleet[best_vehicle_id].idle = False
         # add 1 for every stop before the new delivery stop
-        for stop in range(0, best_delivery_insert_index):
+        for stop in range(0, best_delivery_insert_index + 2):
             self.vehicles_fleet[best_vehicle_id].list_of_next_stops[
                 stop
             ].number_of_next_deliveries += 1
