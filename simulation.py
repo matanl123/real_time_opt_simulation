@@ -7,7 +7,7 @@ np.random.seed(0)
 seed(0)
 
 
-def dist(node1, node2, dist_type):
+def dist(node1, node2, dist_type="euclidian"):
     if dist_type == "euclidian":
         dist = np.sqrt(np.sum(np.square(np.array(node1.xy) - np.array(node2.xy))))
     elif dist_type == "manhattan":
@@ -78,7 +78,7 @@ class Stop:
 
 
 class Simulation:
-    def __init__(self, fleet_size, simulation_run_time, velocity, lamb=1, alpha=1):
+    def __init__(self, fleet_size, simulation_run_time, velocity, lamb=1, alpha=0):
         self.fleet_size = fleet_size
         self.simulation_run_time = simulation_run_time
         self.vehicles_fleet = self._init_vehicles_fleet()
@@ -116,17 +116,14 @@ class Simulation:
             pickup_insert_index = 0
             # if is idle, calculate route of only onw pickup and delivery
             if vehicle.idle:
-                ### change euclidian to be default ###
                 diff_pickup = dist(
                     vehicle.idle_node,
                     self.requests[request_id].node_pickup,
-                    "euclidian",
                 )
 
                 diff_delivery = dist(
                     self.requests[request_id].node_pickup,
                     self.requests[request_id].node_delivery,
-                    "euclidian",
                 )
 
                 pickup_insert_index = 0
@@ -138,73 +135,77 @@ class Simulation:
                 # for each vehicle check the cost in each part of it's route
                 for i in range(0, len(vehicle.list_of_next_stops) - 1):
                     # calculate the distance different after adding the stop
-
-                    ### what about append option ###
-                    length_diff_pickup = dist(
-                        vehicle.list_of_next_stops[i].node,
-                        self.requests[request_id].node_pickup,
-                        "euclidian",
-                    )
-                    +dist(
-                        self.requests[request_id].node_pickup,
-                        vehicle.list_of_next_stops[i + 1].node,
-                        "euclidian",
-                    ) - dist(
-                        vehicle.list_of_next_stops[i].node,
-                        vehicle.list_of_next_stops[i + 1].node,
-                        "euclidian",
-                    )
-                    # calculate the pickup cost function
-                    ### check alpha = 0 ###
-                    diff_pickup = (
-                        length_diff_pickup * self.alpha
-                        + vehicle.list_of_next_stops[i].number_of_next_deliveries
-                        * length_diff_pickup
-                    )
-                    # insert the delivery point after the pickup
-                    ### check case when delivey right after the pickup ###
-                    ### check the bug in the out of range ###
-                    for j in (i + 1, len(vehicle.list_of_next_stops) - 2):
-                        length_diff_delivery = dist(
-                            vehicle.list_of_next_stops[j].node,
-                            self.requests[request_id].node_delivery,
-                            "euclidian",
+                    if i < len(vehicle.list_of_next_stops) -1:
+                        length_diff_pickup = dist(
+                            vehicle.list_of_next_stops[i].node,
+                            self.requests[request_id].node_pickup,
                         )
                         +dist(
-                            self.requests[request_id].node_delivery,
-                            vehicle.list_of_next_stops[j + 1].node,
-                            "euclidian",
+                            self.requests[request_id].node_pickup,
+                            vehicle.list_of_next_stops[i + 1].node,
                         ) - dist(
-                            vehicle.list_of_next_stops[j].node,
-                            vehicle.list_of_next_stops[j + 1].node,
-                            "euclidian",
+                            vehicle.list_of_next_stops[i].node,
+                            vehicle.list_of_next_stops[i + 1].node,
                         )
+                        # calculate the pickup cost function
+                        diff_pickup = (
+                            length_diff_pickup * self.alpha
+                            + vehicle.list_of_next_stops[i].number_of_next_deliveries
+                            * length_diff_pickup
+                        )
+                        # insert the delivery point after the pickup
+                        ### check case when delivey right after the pickup ###
+                        ### check the bug in the out of range ###
+                        for j in (i, len(vehicle.list_of_next_stops) - 2):
+                            length_diff_delivery = dist(
+                                vehicle.list_of_next_stops[j].node,
+                                self.requests[request_id].node_delivery,
+                            )
+                            +dist(
+                                self.requests[request_id].node_delivery,
+                                vehicle.list_of_next_stops[j + 1].node,
+                            ) - dist(
+                                vehicle.list_of_next_stops[j].node,
+                                vehicle.list_of_next_stops[j + 1].node,
+                            )
+                            delivery_time_addition = sum(
+                                [
+                                    dist(
+                                        vehicle.list_of_next_stops[z].node,
+                                        vehicle.list_of_next_stops[z + 1].node,
+                                    )
+                                    for z in range(0, j - 1)
+                                ]
+                            )
+                            diff_delivery = (
+                                    length_diff_delivery * self.alpha
+                                    + vehicle.list_of_next_stops[j].number_of_next_deliveries
+                                    * length_diff_delivery
+                                    + delivery_time_addition
+                            )
+                            total_diff = diff_pickup + diff_delivery
+                    else:
+                        length_diff_pickup = dist(
+                            vehicle.list_of_next_stops[i].node,
+                            self.requests[request_id].node_pickup,
+                        )
+                        length_diff_delivery = dist(
+                            self.requests[request_id].node_pickup,
+                            self.requests[request_id].node_delivery,
+                        )
+                        total_diff = length_diff_pickup + length_diff_delivery
                         # calculate the delivery addition time for the new stop
                         ### need to take into acount the pickup node and the delivery node###
-                        delivery_time_addition = sum(
-                            [
-                                dist(
-                                    vehicle.list_of_next_stops[z].node,
-                                    vehicle.list_of_next_stops[z + 1].node,
-                                    "euclidian",
-                                )
-                                for z in range(0, j - 1)
-                            ]
-                        )
+
                         # calculate the delivery cost function
                         ### length_diff_delivery + length_diff_pickup for the case that delivery right after the pickup ###
-                        diff_delivery = (
-                            length_diff_delivery * self.alpha
-                            + vehicle.list_of_next_stops[j].number_of_next_deliveries
-                            * length_diff_delivery
-                            + delivery_time_addition
-                        )
+
                         # if the minimum cost for pickup and delivery then update best params for the vehicle
                         ### add the best vehicle here ###
-                        if diff_pickup + diff_delivery < min_diff:
-                            min_diff = diff_pickup + diff_delivery
-                            pickup_insert_index = i
-                            delivery_insert_index = j
+                    if total_diff < min_diff:
+                        min_diff = diff_pickup + diff_delivery
+                        pickup_insert_index = i
+                        delivery_insert_index = j
             # check if the current vehicle is the cheapest insertion
             if min_diff < best_diff:
                 best_vehicle_id = vehicle.id
@@ -253,7 +254,7 @@ class Simulation:
             )
             self.vehicles_fleet[best_vehicle_id].idle = False
         # add 1 for every stop before the new delivery stop
-        for stop in range(0, best_delivery_insert_index + 2):
+        for stop in range(0, best_delivery_insert_index + 1):
             self.vehicles_fleet[best_vehicle_id].list_of_next_stops[
                 stop
             ].number_of_next_deliveries += 1
@@ -340,7 +341,6 @@ class Simulation:
                                     self.vehicles_fleet[curr_event.vehicle_id]
                                     .list_of_next_stops[0]
                                     .node,
-                                    "euclidian",
                                 )
                                 / self.velocity,
                                 "vehicle_departure",
