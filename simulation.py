@@ -156,12 +156,14 @@ class Simulation:
                         )
 
                         temp_list_of_next_stops_array.insert(
-                            i + 1,
+                            i,
                             Stop(
                                 "pickup",
                                 request_id,
                                 self.requests[request_id].node_pickup,
-                                number_of_next_deliveries=temp_list_of_next_stops_array[i].number_of_next_deliveries,
+                                number_of_next_deliveries=temp_list_of_next_stops_array[
+                                    i
+                                ].number_of_next_deliveries,
                             ),
                         )
                         # insert the delivery point after the pickup
@@ -275,7 +277,7 @@ class Simulation:
 
     def run(self):
         requests_count = 0
-        factor = 5
+        factor = 1
         start_time = time.time()
         self.current_time = 0
         while self.current_time < self.simulation_run_time:
